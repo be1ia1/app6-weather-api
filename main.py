@@ -3,9 +3,12 @@ import pandas as pd
 
 app = Flask(__name__)
 
+stations = pd.read_csv('data_small\stations.txt', skiprows=17)
+stations = stations[['STAID','STANAME                                 ']]
+
 @app.route('/')
 def home():
-    return render_template('home.html')
+    return render_template('home.html', data=stations.to_html(index=False))
 
 @app.route('/api/<station>/<date>')
 def api(station, date):
@@ -17,6 +20,22 @@ def api(station, date):
             'date': date,
             'temperature': temperature
     }
+
+@app.route('/api/<station>')
+def all_data(station):
+    long_station = "{:06d}".format(int(station))
+    path = 'data_small/TG_STAID{}.txt'.format(long_station)
+    df = pd.read_csv(path, skiprows=20, parse_dates=["    DATE"])
+    return df.to_dict(orient='records')
+
+@app.route('/api/yearly/<station>/<year>')
+def yearly(station, year):
+    long_station = "{:06d}".format(int(station))
+    path = 'data_small/TG_STAID{}.txt'.format(long_station)
+    df = pd.read_csv(path, skiprows=20)
+    df['    DATE'] = df['    DATE'].astype(str)
+    result = df[df['    DATE'].str.startswith(str(year))]
+    return result.to_dict(orient='records')
 
 if __name__ == '__main__':
     app.run(debug=True)
